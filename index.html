@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#050810">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23050810'/%3E%3Cpath d='M6 24V8h13M6 16h17l4 4-4 4H11' fill='none' stroke='%2322d3ee' stroke-width='2'/%3E%3C/svg%3E">
+  <title>PubTrans Minneapolis — Street Network Lab</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="PubTrans Minneapolis home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 24V8h14M5 16h18l4 4-4 4H10"/><circle cx="7" cy="8" r="2"/><circle cx="7" cy="24" r="2"/></svg>
+      <span>PUBTRANS <b>/ MPLS</b></span>
+    </a>
+    <div class="area-title"><strong>Downtown ↔ University</strong><span>Street network lab</span></div>
+    <div class="top-metrics">
+      <span><i class="status-dot"></i><b id="run-status">LIVE</b></span>
+      <span><small>SIM TIME</small><b id="sim-time">07:00:00</b></span>
+      <span><small>NETWORK</small><b id="network-size">—</b></span>
+    </div>
+    <button class="icon-button" id="open-guide" aria-label="Open simulation guide" title="Guide">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.7 9a2.4 2.4 0 0 1 4.6 1c0 2-2.3 2-2.3 4M12 17h.01"/></svg>
+    </button>
+  </header>
+
+  <nav class="mobile-nav" aria-label="Panel shortcuts"><a href="#map-shell">Map</a><a href="#queue-monitor">Queue graph</a><a href="#controls">Fleet & metrics</a><a href="#layers">Layers</a></nav>
+
+  <main class="workspace">
+    <aside class="panel left-panel" aria-label="Map layers and places">
+      <section id="layers">
+        <div class="section-heading"><h2>Map layers</h2><span>LIVE CANVAS</span></div>
+        <div class="layer-list">
+          <label><input type="checkbox" data-layer="roads" checked><span>Road network</span><small id="road-count">—</small></label>
+          <label><input type="checkbox" data-layer="buildings" checked><span>Buildings</span><small id="building-count">—</small></label>
+          <label><input type="checkbox" data-layer="labels" checked><span>Street labels</span><small>LOD</small></label>
+          <label><input type="checkbox" data-layer="water" checked><span>Mississippi</span><small>OSM area</small></label>
+          <label><input type="checkbox" data-layer="traffic" checked><span>Traffic pressure</span><small>LIVE</small></label>
+          <label><input type="checkbox" data-layer="requests" checked><span>Waiting pickups</span><small>LIVE</small></label>
+          <label><input type="checkbox" data-layer="humans" checked><span>Human drivers</span><small id="human-layer-count">0</small></label>
+          <label><input type="checkbox" data-layer="signals" checked><span>Traffic signals</span><small id="signal-count">—</small></label>
+        </div>
+      </section>
+      <section class="place-section">
+        <div class="section-heading"><h2>Places</h2><span id="place-count">14</span></div>
+        <label class="search-label" for="place-search">Find a map landmark</label>
+        <input id="place-search" type="search" placeholder="Filter campus or downtown" autocomplete="off">
+        <div id="place-list" class="place-list"></div>
+      </section>
+      <section class="legend-section">
+        <div class="section-heading"><h2>Live fleet</h2><span id="fleet-total-legend">30 VEHICLES</span></div>
+        <div class="legend"><span title="Sedan capacity: 4"><i class="sedan"></i>Sedan <b id="sedan-count">20</b></span><span title="Shuttle capacity: 8"><i class="shuttle"></i>Shuttle <b id="shuttle-count">6</b></span><span title="Bus capacity: 20"><i class="bus"></i>Bus <b id="bus-count">4</b></span><span><i class="request"></i>Queued pickup</span><span><i class="human"></i>Human car</span></div>
+        <p class="hub-note">Empty, undispatched vehicles return to the Central Transit Hub at Nicollet &amp; 7th.</p>
+      </section>
+      <p class="attribution">© OpenStreetMap contributors · ODbL<br>Geometry is real; operations are illustrative.</p>
+    </aside>
+
+    <section class="map-column" aria-label="Interactive Minneapolis simulation">
+      <div class="map-toolbar">
+        <div class="view-tabs" aria-label="Saved map views">
+          <button data-view="all" class="active">Entire area</button><button data-view="downtown">Downtown</button><button data-view="west">West Bank</button><button data-view="east">East Bank</button>
+        </div>
+        <div class="map-actions"><button id="zoom-out" aria-label="Zoom out">−</button><span id="zoom-level">100%</span><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit-map" class="fit-button">Fit</button></div>
+      </div>
+      <div id="map-shell" class="map-shell">
+        <canvas id="map" aria-label="Street map. Drag to pan, wheel or pinch to zoom. Click a vehicle to inspect it." tabindex="0"></canvas>
+        <div class="map-overlay"><span class="live-chip"><i></i>AUTONOMOUS FLEET</span><span id="render-stats">—</span></div>
+        <div id="map-empty" class="map-empty"><strong>Loading Minneapolis network</strong><span>Preparing streets, buildings and routes…</span></div>
+        <div class="map-bottom"><span id="view-label">DOWNTOWN + BOTH CAMPUS BANKS</span><span id="scale-label">1 km</span></div>
+        <div id="vehicle-card" class="vehicle-card" hidden><button id="close-vehicle" aria-label="Close vehicle details">×</button><small>SELECTED VEHICLE</small><strong id="vehicle-name">—</strong><span id="vehicle-detail">—</span><button id="follow-vehicle">Follow vehicle</button></div>
+      </div>
+      <section id="queue-monitor" class="queue-monitor" aria-labelledby="queue-title">
+        <div class="queue-summary">
+          <div><h2 id="queue-title">Queued requests</h2><span>WAITING NOW</span></div>
+          <strong id="queue-current" aria-live="polite">0</strong>
+          <div class="queue-peak"><span>RUN PEAK</span><b id="queue-peak">0</b><small>maximum queued</small></div>
+        </div>
+        <div class="queue-chart-wrap">
+          <canvas id="queue-chart" role="img" aria-label="Running graph of queued requests over the last 30 simulated minutes, with a dashed line at the maximum queued during this run."></canvas>
+          <div class="queue-chart-labels"><span id="queue-start-time">07:00</span><span>LAST 30 SIMULATED MIN</span><span id="queue-end-time">07:00</span></div>
+        </div>
+      </section>
+      <div class="map-statusbar"><span><i class="status-dot"></i><b id="vehicle-count">0 vehicles</b> on real street geometry</span><span>Drag to pan · Scroll / pinch to zoom · Click a vehicle</span></div>
+    </section>
+
+    <aside class="panel right-panel" aria-label="Simulation controls">
+      <section id="controls">
+        <div class="section-heading"><h2>Simulation</h2><span id="speed-readout">1×</span></div>
+        <div class="playback-row"><button id="pause" class="pause-button">Pause</button><button id="reset">Reset day</button></div>
+        <label class="range-label" for="speed">Playback speed <output id="speed-output">1×</output></label>
+        <input id="speed" type="range" min="0" max="2" step="1" value="0">
+        <div class="range-ticks"><span>1×</span><span>4×</span><span>12×</span></div>
+        <div class="fleet-total"><span>Active fleet</span><strong id="fleet-output">30 vehicles</strong></div>
+        <div class="fleet-control sedan-control"><label class="range-label" for="sedan-fleet"><span><i class="sedan"></i>Sedans <small>capacity 4</small></span><output id="sedan-fleet-output">20</output></label><input id="sedan-fleet" data-fleet-type="0" type="range" min="0" max="60" step="1" value="20"></div>
+        <div class="fleet-control shuttle-control"><label class="range-label" for="shuttle-fleet"><span><i class="shuttle"></i>Shuttles <small>capacity 8</small></span><output id="shuttle-fleet-output">6</output></label><input id="shuttle-fleet" data-fleet-type="1" type="range" min="0" max="60" step="1" value="6"></div>
+        <div class="fleet-control bus-control"><label class="range-label" for="bus-fleet"><span><i class="bus"></i>Buses <small>capacity 20</small></span><output id="bus-fleet-output">4</output></label><input id="bus-fleet" data-fleet-type="2" type="range" min="0" max="60" step="1" value="4"></div>
+        <p class="control-help">Each type adjusts independently. Empty vehicles without a dispatch return to the central hub.</p>
+        <label class="range-label" for="demand">Demand <output id="demand-output">120 trips/h</output></label>
+        <input id="demand" type="range" min="4" max="600" step="4" value="120" aria-describedby="demand-help">
+        <div class="range-ticks"><span>4/h</span><span>300/h</span><span>600/h · 10/min</span></div>
+        <p id="demand-help" class="control-help">Weighted across <span id="demand-site-total">933</span> real buildings; dorms, housing, shops, campus, and employers vary by time of day.</p>
+        <label class="range-label" for="human-rate">Human drivers <output id="human-rate-output">20 cars/h</output></label>
+        <input id="human-rate" type="range" min="20" max="200" step="10" value="20" aria-describedby="human-help">
+        <div class="range-ticks"><span>20/h</span><span>110/h</span><span>200/h</span></div>
+        <p id="human-help" class="control-help">Human cars enter on errands and leave. All vehicles follow within directed lanes, negotiate intersections, and recover if stuck.</p>
+        <label class="toggle-row"><input id="congestion-routing" type="checkbox" checked><span>Congestion-aware routing</span></label>
+      </section>
+
+      <section class="metrics-section">
+        <div class="section-heading"><h2>Live operations</h2><span><b id="hub-count">0</b> WAITING AT HUB</span></div>
+        <div class="metric-grid"><div><small>COMPLETED</small><strong id="completed">0</strong></div><div><small>AVG RIDE</small><strong id="avg-ride">—</strong><em>min</em></div><div><small>IN QUEUE</small><strong id="queued">0</strong></div><div><small>AVG WAIT</small><strong id="avg-wait">—</strong><em>min</em></div></div>
+        <div class="pressure-label"><span>Network route pressure</span><b id="pressure-value">0.00</b></div>
+        <div class="pressure-track"><div id="pressure-bar"></div></div>
+        <div class="traffic-summary"><span><b id="human-active">0</b> human drivers</span><span><b id="fleet-yields">0</b> fleet yields</span></div>
+      </section>
+      <section class="activity-section">
+        <div class="section-heading"><h2>Activity</h2><button id="clear-log">Clear</button></div>
+        <ol id="activity-log" class="activity-log"></ol>
+      </section>
+    </aside>
+  </main>
+
+  <dialog id="guide">
+    <div class="dialog-heading"><h2>Minneapolis network lab</h2><button id="close-guide" aria-label="Close guide">×</button></div>
+    <div class="dialog-body">
+      <p><strong>Real streets, illustrative operations.</strong> Vehicles follow a directed graph derived from OpenStreetMap road centerlines through downtown Minneapolis and both University of Minnesota campus banks.</p>
+      <h3>Explore</h3><p>The entire area is fitted on startup. Drag to pan; use the wheel, pinch, or +/− buttons to zoom. Saved views jump to each district. Click a vehicle for its live state, then follow it if desired.</p>
+      <h3>Queue monitor</h3><p>The graph beneath the map tracks queued requests over the last 30 simulated minutes. Large digits show the current queue; the dashed amber threshold and run-peak digits show the maximum queue reached since the last reset. All requests are generated automatically and dispatched using directed Dijkstra routing.</p>
+      <h3>Fleet and transit hub</h3><p>Sedan, shuttle, and bus counts adjust independently, up to 60 of each type. Empty vehicles without a dispatch return to the Central Transit Hub at Nicollet &amp; 7th and wait until a compatible passenger request is available.</p>
+      <h3>Building-based demand</h3><p>Requests originate across 933 real named buildings, including apartments, townhomes, shops, employers, and campus dorms. Demand can reach 600 requests per hour. Large dorms such as Frontier Hall are weighted for dozens of hourly calls, with residential, employment, campus, and retail patterns changing by time of day.</p>
+      <h3>Signals and human drivers</h3><p>Directed streets constrain every route. Timed signals create red-light stops at selected intersections. Human cars enter from the area boundary, drive to a shop or workplace, dwell for an errand, and exit. Their entry rate adjusts from 20 to 200 cars per hour. Fleet vehicles detect human traffic up to 70 meters ahead and slow or stop to avoid it.</p>
+      <h3>Accuracy</h3><p>Street and building geometry is data-derived. Local one-way defaults, speeds, demand, signal placement/timing, human traffic, and operations are illustrative. The Mississippi polygon is approximate. This is not a calibrated municipal traffic model.</p>
+      <p class="dialog-note">Everything runs in your browser from the checked-in dataset. No account, API key, tile service, or backend is used.</p>
+    </div>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
